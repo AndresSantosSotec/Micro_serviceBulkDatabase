@@ -23,4 +23,11 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
 
+// Ruta para subir archivos
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
+
+// Ruta para guardar configuración del bucket AWS
+Route::post('/config/aws', [UploadController::class, 'saveAwsConfig'])->name('config.aws');
+
+// Ruta para guardar configuración local
+Route::post('/config/local', [UploadController::class, 'saveLocalConfig'])->name('config.local');

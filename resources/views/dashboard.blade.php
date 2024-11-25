@@ -98,9 +98,10 @@
                             <input type="password" class="form-control" id="secret-key">
                         </div>
 
-                        <button class="btn btn-success mt-3" id="save-config">
+                        <button class="btn btn-success mt-3" id="save-config" data-config-type="local">
                             <i class="fas fa-save"></i> Guardar Configuración
                         </button>
+
                     </div>
                 </div>
 
@@ -158,30 +159,62 @@
                             text: `El archivo ${file.name} no es un archivo de Excel válido.`,
                         });
                     } else {
-                        fileNames += file.name + '\n'; // Solo muestra el nombre del archivo
+                        const filePath = file.webkitRelativePath || file
+                            .name; // Ruta completa o nombre del archivo
+                        fileNames += filePath + '\n';
                     }
                 });
 
                 if (isValid) {
-                    $('#folder-path').val(fileNames.trim()); // Mostrar nombres de archivos seleccionados
+                    $('#folder-path').val(fileNames.trim()); // Mostrar rutas de archivos seleccionados
                 } else {
                     $('#folder').val(''); // Resetear input si hay errores
                     $('#folder-path').val('');
                 }
             });
+
             // Guardar Configuración con SweetAlert
             $('#save-config').click(function() {
-                let configType = $('input[name="config"]:checked').val();
-                let message = configType === 'local' ?
-                    'Se ha guardado la configuración de la carpeta local correctamente.' :
-                    'Se ha guardado la configuración del bucket AWS correctamente.';
+                const configType = $('input[name="config"]:checked').val();
+                let message = '';
+                let isValid = true;
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Configuración Guardada',
-                    text: message,
-                    confirmButtonText: 'Aceptar'
-                });
+                if (configType === 'local') {
+                    if ($('#folder-path').val().trim() === '') {
+                        isValid = false;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sin Archivos',
+                            text: 'No has seleccionado ningún archivo para la carpeta local.',
+                        });
+                    } else {
+                        message = 'Se ha guardado la configuración de la carpeta local correctamente.';
+                    }
+                } else if (configType === 'aws') {
+                    const bucketPath = $('#bucket-path').val().trim();
+                    const accessKey = $('#access-key').val().trim();
+                    const secretKey = $('#secret-key').val().trim();
+
+                    if (!bucketPath || !accessKey || !secretKey) {
+                        isValid = false;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Campos incompletos',
+                            text: 'Por favor, completa todos los campos del Bucket AWS antes de guardar.',
+                        });
+                    } else {
+                        message = 'Se ha guardado la configuración del bucket AWS correctamente.';
+                    }
+                }
+
+                if (isValid) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Configuración Guardada',
+                        text: message,
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
             });
         });
     </script>
