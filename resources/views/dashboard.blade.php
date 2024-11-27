@@ -107,22 +107,40 @@
 
                 {{-- Right Column --}}
                 <div class="col-md-6">
-                    <div class="mb-4">
-                        <h2 class="fs-4 fw-semibold"><i class="fas fa-cogs me-2"></i>Personalización</h2>
-                        <div class="mb-3">
-                            <label for="interval" class="form-label"><i class="fas fa-clock"></i> Intervalo de Ejecución
-                                (horas)</label>
-                            <input type="number" class="form-control" id="interval" value="12">
+                    <div class="accordion" id="personalizationAccordion">
+                        {{-- Encabezado del acordeón --}}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="personalizationHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#personalizationCollapse" aria-expanded="true"
+                                    aria-controls="personalizationCollapse">
+                                    <i class="fas fa-cogs me-2"></i> Personalización
+                                </button>
+                            </h2>
+
+                            {{-- Contenido del acordeón --}}
+                            <div id="personalizationCollapse" class="accordion-collapse collapse show"
+                                aria-labelledby="personalizationHeading" data-bs-parent="#personalizationAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        <label for="interval" class="form-label"><i class="fas fa-clock"></i> Intervalo
+                                            de Ejecución (horas)</label>
+                                        <input type="number" class="form-control" id="interval" value="12">
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="email-notifications">
+                                        <label class="form-check-label" for="email-notifications"><i
+                                                class="fas fa-envelope"></i> Notificaciones por Email</label>
+                                    </div>
+                                    <button class="btn btn-primary" id='timer'><i class="fas fa-save"></i> Guardar
+                                        Personalización</button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="email-notifications">
-                            <label class="form-check-label" for="email-notifications"><i class="fas fa-envelope"></i>
-                                Notificaciones por Email</label>
-                        </div>
-                        <button class="btn btn-primary"><i class="fas fa-save"></i> Guardar Personalización</button>
                     </div>
                 </div>
-            </div>
+                {{--secion de designar las columnas--}}
+                
         </main>
     </div>
 
@@ -131,6 +149,32 @@
 
     {{-- JavaScript para manejar funcionalidad --}}
     <script>
+        $(document).ready(function() {
+            $('#timer').click(function() {
+                // Capturar el valor del intervalo
+                const interval = $('#interval').val();
+
+                // Validar que el intervalo no esté vacío o sea negativo
+                if (!interval || interval <= 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error en la Configuración',
+                        text: 'Por favor, ingresa un intervalo válido (mayor a 0 horas).',
+                    });
+                    return;
+                }
+
+                // Mostrar SweetAlert de éxito
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Personalización Guardada',
+                    text: `Se ha guardado el intervalo de ejecución de ${interval} horas correctamente.`,
+                    confirmButtonText: 'Aceptar'
+                });
+            });
+        });
+
+
         $(document).ready(function() {
             // Mostrar/Ocultar configuración según la selección
             $('input[name="config"]').change(function() {

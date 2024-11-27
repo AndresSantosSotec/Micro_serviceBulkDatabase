@@ -15,7 +15,7 @@ use App\Http\Controllers\UploadController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('dashboard');
 });
 
 // Ruta para el dashboard
