@@ -4,7 +4,6 @@
     <p>Seleccione el archivo para cargar datos de captaciones. Asegúrese de seguir el formato correcto.</p>
     <button class="btn btn-info mt-3">Columnas para Captaciones</button>
 
-    {{-- Configuración de Carpeta o Servidor --}}
     <h2 class="fs-4 fw-semibold"><i class="fas fa-folder-open me-2"></i>Configuración de Carpeta o Servidor</h2>
     <div class="form-check">
         <input class="form-check-input" type="radio" name="config_step2" id="local_step2" value="local" checked>
@@ -17,12 +16,19 @@
 
     {{-- Configuración para Carpeta Local --}}
     <div id="local-config-step2" class="mt-3">
-        <label for="manual-path-step2" class="form-label"><i class="fas fa-folder"></i> Ruta Manual (Opcional)</label>
-        <input type="text" class="form-control" id="manual-path-step2" placeholder="Ejemplo: C:/mis-datos/captaciones/">
-        
+        <label for="manual-path-step2" class="form-label"><i class="fas fa-folder"></i> Ruta Manual</label>
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" id="manual-path-step2"
+                placeholder="Ejemplo: C:/mis-datos/captaciones/">
+            <input type="file" class="d-none" id="folder-picker-step2" webkitdirectory>
+            <button class="btn btn-primary" id="add-path-step2"><i class="fas fa-plus"></i> Agregar Ruta</button>
+        </div>
+
         <label for="folder_step2" class="form-label mt-3"><i class="fas fa-upload"></i> Seleccionar Archivos</label>
         <input type="file" class="form-control" id="folder_step2" accept=".xlsx,.xls,.csv" multiple>
-        <textarea id="file-paths-step2" class="form-control mt-3" rows="4" readonly></textarea>
+
+        <label class="form-label mt-3"><i class="fas fa-list"></i> Rutas Incluidas</label>
+        <textarea class="form-control" id="file-paths-step2" rows="5" readonly></textarea>
     </div>
 
     {{-- Configuración para Bucket AWS --}}
@@ -35,15 +41,14 @@
         <input type="password" class="form-control" id="secret-key-step2">
     </div>
 
-    <button class="btn btn-success mt-3 save-config" data-step="2">
-        <i class="fas fa-save"></i> Guardar Configuración
-    </button>
+    <button class="btn btn-success mt-3 save-config" data-step="2"><i class="fas fa-save"></i> Guardar
+        Configuración</button>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Manejar cambios entre "Carpeta Local" y "Bucket AWS" en el paso 2
-        $('input[name="config_step2"]').change(function () {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cambiar entre local y AWS en Captaciones
+        $('input[name="config_step2"]').change(function() {
             if ($(this).val() === 'local') {
                 $('#local-config-step2').show();
                 $('#aws-config-step2').hide();
@@ -53,14 +58,29 @@
             }
         });
 
-        // Validar archivos seleccionados y mostrar rutas completas
-        $('#folder_step2').change(function () {
+        // Agregar ruta manual al área de texto en Captaciones
+        $('#add-path-step2').click(function() {
+            const manualPath = $('#manual-path-step2').val().trim();
+            if (!manualPath) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ruta no especificada',
+                    text: 'Por favor, ingresa una ruta válida.',
+                });
+                return;
+            }
+            const currentPaths = $('#file-paths-step2').val();
+            const newPaths = currentPaths ? `${currentPaths}\n${manualPath}` : manualPath;
+            $('#file-paths-step2').val(newPaths.trim());
+            $('#manual-path-step2').val('');
+        });
+
+        // Validar archivos seleccionados y combinar rutas en Captaciones
+        $('#folder_step2').change(function() {
             const allowedExtensions = ['xlsx', 'xls', 'csv'];
-            const manualPath = $('#manual-path-step2').val().trim(); // Obtener la ruta manual si existe
             let filePaths = '';
             let isValid = true;
 
-            // Procesar archivos seleccionados
             Array.from(this.files).forEach(file => {
                 const extension = file.name.split('.').pop().toLowerCase();
                 if (!allowedExtensions.includes(extension)) {
@@ -68,28 +88,26 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Archivo no válido',
-                        text: `El archivo ${file.name} no es un archivo de Excel válido.`,
+                        text: `El archivo ${file.name} no es un archivo válido.`,
                     });
                 } else {
-                    const fileName = file.name;
-                    const fullPath = manualPath ? `${manualPath}/${fileName}` : fileName;
-                    filePaths += `${fullPath}\n`; // Agregar ruta completa o solo nombre del archivo
+                    filePaths += `${file.name}\n`;
                 }
             });
 
             if (isValid) {
-                // Mostrar las rutas completas en el textarea
-                $('#file-paths-step2').val(filePaths.trim());
+                const currentPaths = $('#file-paths-step2').val();
+                const newPaths = currentPaths ? `${currentPaths}\n${filePaths.trim()}` : filePaths
+                .trim();
+                $('#file-paths-step2').val(newPaths);
             } else {
-                // Limpiar input y textarea si hay errores
                 $('#folder_step2').val('');
-                $('#file-paths-step2').val('');
             }
         });
 
-        // Guardar configuración del paso 2
-        $('.save-config[data-step="2"]').click(function () {
-            const configType = $('input[name="config_step2"]:checked').val(); // Tipo de configuración seleccionado
+        // Guardar configuración en Captaciones
+        $('.save-config[data-step="2"]').click(function() {
+            const configType = $('input[name="config_step2"]:checked').val();
             let message = '';
             let isValid = true;
 
@@ -99,8 +117,8 @@
                     isValid = false;
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Sin Archivos',
-                        text: 'No has seleccionado ningún archivo para la carpeta local.',
+                        title: 'Sin Archivos o Rutas',
+                        text: 'No has incluido ninguna ruta ni archivo.',
                     });
                 } else {
                     message = 'Se ha guardado la configuración de la carpeta local correctamente.';

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
+use Illuminate\Support\Facades\View;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,3 +32,15 @@ Route::post('/config/aws', [UploadController::class, 'saveAwsConfig'])->name('co
 
 // Ruta para guardar configuración local
 Route::post('/config/local', [UploadController::class, 'saveLocalConfig'])->name('config.local');
+
+
+Route::get('/loadPersonalization/{component}', function ($component) {
+    // Validar que el componente existe
+    $validComponents = ['PerAso', 'PerCap', 'PerColo'];
+    if (!in_array($component, $validComponents)) {
+        abort(404, 'Componente no válido');
+    }
+
+    // Retornar la vista correspondiente
+    return view("components.Personalizacion.{$component}");
+});

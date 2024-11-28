@@ -73,35 +73,14 @@
 
                 {{-- Right Column --}}
                 <div class="col-md-6">
-                    <div class="accordion" id="personalizationAccordion">
-                        {{-- Encabezado del acordeón --}}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="personalizationHeading">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#personalizationCollapse" aria-expanded="true"
-                                    aria-controls="personalizationCollapse">
-                                    <i class="fas fa-cogs me-2"></i> Personalización
-                                </button>
-                            </h2>
-
-                            {{-- Contenido del acordeón --}}
-                            <div id="personalizationCollapse" class="accordion-collapse collapse show"
-                                aria-labelledby="personalizationHeading" data-bs-parent="#personalizationAccordion">
-                                <div class="accordion-body">
-                                    <div class="mb-3">
-                                        <label for="interval" class="form-label"><i class="fas fa-clock"></i> Intervalo
-                                            de Ejecución (horas)</label>
-                                        <input type="number" class="form-control" id="interval" value="12">
-                                    </div>
-                                    <div class="form-check form-switch mb-2">
-                                        <input class="form-check-input" type="checkbox" id="email-notifications">
-                                        <label class="form-check-label" for="email-notifications"><i
-                                                class="fas fa-envelope"></i> Notificaciones por Email</label>
-                                    </div>
-                                    <button class="btn btn-primary" id='timer'><i class="fas fa-save"></i> Guardar
-                                        Personalización</button>
-                                </div>
-                            </div>
+                    <div id="personalization-container" class="accordion">
+                        {{-- Personalización Dinámica --}}
+                        <div id="dynamic-personalization">
+                            @if (View::exists('components.Personalizacion.PerAso'))
+                                @include('components.Personalizacion.PerAso')
+                            @else
+                                <p>Error: La vista Personalizacion.PerAso no existe.</p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -113,6 +92,58 @@
 
     {{-- JavaScript para manejar funcionalidad --}}
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const stepButtons = document.querySelectorAll('.step-btn');
+            const dynamicContainer = document.getElementById('dynamic-personalization');
+
+            // Función para manejar el cambio dinámico de la vista
+            stepButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const step = this.getAttribute('data-step'); // Obtener el paso seleccionado
+                    let componentName;
+
+                    // Determinar el nombre del componente basado en el paso
+                    switch (step) {
+                        case '1':
+                            componentName = 'PerAso';
+                            break;
+                        case '2':
+                            componentName = 'PerCap';
+                            break;
+                        case '3':
+                            componentName = 'PerColo';
+                            break;
+                        default:
+                            console.error('Paso no válido seleccionado');
+                            return;
+                    }
+
+                    // Realizar una petición al servidor para cargar la vista dinámica
+                    fetch(`/loadPersonalization/${componentName}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Error al cargar el componente.');
+                            return response.text();
+                        })
+                        .then(html => {
+                            dynamicContainer.innerHTML =
+                            html; // Actualizar el contenido dinámico
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar la personalización:', error);
+                            dynamicContainer.innerHTML =
+                                '<p>Error al cargar el contenido dinámico.</p>';
+                        });
+
+                    // Actualizar visualmente los botones
+                    stepButtons.forEach(btn => {
+                        btn.classList.remove('btn-primary');
+                        btn.classList.add('btn-secondary');
+                    });
+                    this.classList.add('btn-primary');
+                });
+            });
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const stepButtons = document.querySelectorAll('.step-btn');
             const stepPanels = document.querySelectorAll('.step-panel');
@@ -132,11 +163,11 @@
                     // Mostrar el panel correspondiente
                     stepPanels.forEach(panel => {
                         panel.style.display = panel.id === `step-${step}` ? 'block' :
-                        'none';
+                            'none';
                     });
                 });
             });
-            
+
             // Validar archivos seleccionados
             document.querySelectorAll('input[type="file"]').forEach(input => {
                 input.addEventListener('change', function() {
@@ -160,9 +191,6 @@
                     }
                 });
             });
-
-            // Guardar configuración para cada paso
-
         });
     </script>
 @endsection
