@@ -1,6 +1,24 @@
 @extends('layouts.app')
 
+
 @section('content')
+    <style>
+        @media (max-width: 768px) {
+            #personalization-container {
+                margin-top: 20px;
+            }
+
+            #dynamic-personalization {
+                overflow-x: auto;
+                /* Permitir desplazamiento horizontal si el contenido es demasiado ancho */
+            }
+        }
+
+        #dynamic-personalization p {
+            word-wrap: break-word;
+            /* Ajustar texto largo para evitar desbordes */
+        }
+    </style>
     <div class="min-vh-100 bg-light">
         {{-- Header --}}
         <header class="bg-primary text-white py-4">
@@ -28,22 +46,17 @@
                     {{-- Upload History --}}
                     <div class="mb-4">
                         <h2 class="fs-4 fw-semibold"><i class="fas fa-history me-2"></i>Historial de Cargas</h2>
-                        <table class="table table-hover table-striped">
+                        <table class="table table-hover table-striped align-middle">
                             <thead class="table-primary">
                                 <tr>
-                                    <th>Fecha y Hora</th>
-                                    <th>Ruta del Archivo</th>
-                                    <th>Registros</th>
-                                    <th>Estado</th>
+                                    <th scope="col">Nombre del Archivo</th>
+                                    <th scope="col">Metadatos</th>
+                                    <th scope="col">Ruta del Archivo</th>
+                                    <th scope="col">Fecha y Hora</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <th>as</th>
-                                    <th>as</th>
-                                    <th>as</th>
-                                    <th>as</th>
-                                </tr>
+                                <!-- Las filas serán cargadas dinámicamente aquí -->
                             </tbody>
                         </table>
                     </div>
@@ -74,13 +87,20 @@
                 {{-- Right Column --}}
                 <div class="col-md-6">
                     <div id="personalization-container" class="accordion">
-                        {{-- Personalización Dinámica --}}
-                        <div id="dynamic-personalization">
-                            @if (View::exists('components.Personalizacion.PerAso'))
-                                @include('components.Personalizacion.PerAso')
-                            @else
-                                <p>Error: La vista Personalizacion.PerAso no existe.</p>
-                            @endif
+                        {{-- Contenedor Responsivo --}}
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Personalización Dinámica</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="dynamic-personalization">
+                                    @if (View::exists('components.Personalizacion.PerAso'))
+                                        @include('components.Personalizacion.PerAso')
+                                    @else
+                                        <p class="text-danger">Error: La vista Personalizacion.PerAso no existe.</p>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -92,89 +112,176 @@
 
     {{-- JavaScript para manejar funcionalidad --}}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const stepButtons = document.querySelectorAll('.step-btn');
-            const dynamicContainer = document.getElementById('dynamic-personalization');
-
-            // Función para manejar el cambio dinámico de la vista
-            stepButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const step = this.getAttribute('data-step'); // Obtener el paso seleccionado
-                    let componentName;
-
-                    // Determinar el nombre del componente basado en el paso
-                    switch (step) {
-                        case '1':
-                            componentName = 'PerAso';
-                            break;
-                        case '2':
-                            componentName = 'PerCap';
-                            break;
-                        case '3':
-                            componentName = 'PerColo';
-                            break;
-                        default:
-                            console.error('Paso no válido seleccionado');
-                            return;
-                    }
-
-                    // Realizar una petición al servidor para cargar la vista dinámica
-                    fetch(`/loadPersonalization/${componentName}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error('Error al cargar el componente.');
-                            return response.text();
-                        })
-                        .then(html => {
-                            dynamicContainer.innerHTML =
-                            html; // Actualizar el contenido dinámico
-                        })
-                        .catch(error => {
-                            console.error('Error al cargar la personalización:', error);
-                            dynamicContainer.innerHTML =
-                                '<p>Error al cargar el contenido dinámico.</p>';
+        document.addEventListener('DOMContentLoaded', function () {
+            const stepButtons = document.querySelectorAll('.step-btn'); // Botones para cambiar de paso
+            const dynamicContainer = document.getElementById('dynamic-personalization'); // Contenedor dinámico
+            const tableBody = document.querySelector('.table tbody'); // Cuerpo de la tabla para historial
+    
+            // --- Función para manejar vistas dinámicas ---
+            function loadDynamicView(step) {
+                let componentName;
+                // Asignar el componente basado en el paso seleccionado
+                switch (step) {
+                    case '1':
+                        componentName = 'PerAso'; // Personalización Asociados
+                        break;
+                    case '2':
+                        componentName = 'PerCap'; // Personalización Captaciones
+                        break;
+                    case '3':
+                        componentName = 'PerColo'; // Personalización Colocaciones
+                        break;
+                    default:
+                        console.error('Paso no válido seleccionado');
+                        return;
+                }
+    
+                // Cargar la vista dinámica del servidor
+                fetch(`/loadPersonalization/${componentName}`)
+                    .then((response) => {
+                        if (!response.ok) throw new Error('Error al cargar el componente.');
+                        return response.text();
+                    })
+                    .then((html) => {
+                        dynamicContainer.innerHTML = html; // Insertar contenido dinámico en el contenedor
+                        initializePersonalization(componentName); // Inicializar personalización después de cargar la vista
+                    })
+                    .catch((error) => {
+                        console.error('Error al cargar la personalización:', error);
+                        dynamicContainer.innerHTML = '<p>Error al cargar el contenido dinámico.</p>';
+                    });
+            }
+    
+            // --- Función para cargar los datos de las tablas ---
+            function loadCargas(step) {
+                // Realizar solicitud para obtener los datos del historial basado en el paso
+                fetch(`/cargas/${step}`)
+                    .then((response) => {
+                        if (!response.ok) throw new Error('Error al recuperar los datos');
+                        return response.json();
+                    })
+                    .then((data) => {
+                        tableBody.innerHTML = ''; // Limpiar la tabla
+                        if (data.length > 0) {
+                            // Poblar la tabla con los datos recibidos
+                            data.forEach((carga) => {
+                                const row = `
+                                    <tr>
+                                        <td>${carga.nombre_archivo}</td>
+                                        <td>${carga.metadatos || '<em>Sin metadatos</em>'}</td>
+                                        <td><span class="text-truncate d-inline-block" style="max-width: 250px;">${carga.ruta_archivo}</span></td>
+                                        <td>${new Date(carga.created_at).toLocaleString()}</td>
+                                    </tr>
+                                `;
+                                tableBody.innerHTML += row;
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Sin datos',
+                                text: 'No se encontraron archivos cargados para este paso.',
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error al cargar los datos:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Hubo un problema al recuperar los datos.',
                         });
-
-                    // Actualizar visualmente los botones
-                    stepButtons.forEach(btn => {
+                    });
+            }
+    
+            // --- Función para inicializar la configuración de personalización ---
+            function initializePersonalization(tipo) {
+                const saveButton = document.querySelector(`#timer-${tipo.toLowerCase()}`); // Botón de guardado
+                if (!saveButton) return; // Salir si no hay botón
+    
+                // Cargar configuración inicial desde el servidor
+                fetch(`/personalization/${tipo}`)
+                    .then((response) => {
+                        if (!response.ok) throw new Error('No se encontró configuración');
+                        return response.json();
+                    })
+                    .then((data) => {
+                        // Configurar los valores iniciales en el formulario
+                        document.getElementById(`interval-${tipo.toLowerCase()}`).value = data.intervalo_horas;
+                        document.getElementById(`email-notifications-${tipo.toLowerCase()}`).checked = data.notificaciones_email;
+                        saveButton.innerText = 'Editar Personalización'; // Cambiar el texto del botón
+                    })
+                    .catch((error) => {
+                        console.warn(error.message);
+                        saveButton.innerText = 'Guardar Personalización'; // Texto predeterminado si no hay datos
+                    });
+    
+                // Manejar el evento de clic para guardar la personalización
+                saveButton.addEventListener('click', function () {
+                    const intervalo = document.getElementById(`interval-${tipo.toLowerCase()}`).value; // Obtener el intervalo
+                    const emailNotifications = document.getElementById(`email-notifications-${tipo.toLowerCase()}`).checked; // Obtener el estado del checkbox
+    
+                    // Enviar los datos al servidor
+                    fetch(`/personalization/${tipo}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, // Agregar CSRF token
+                        },
+                        body: JSON.stringify({
+                            intervalo_horas: intervalo,
+                            notificaciones_email: emailNotifications ? 1 : 0,
+                        }),
+                    })
+                        .then((response) => {
+                            if (!response.ok) throw new Error('Error al guardar configuración');
+                            return response.json();
+                        })
+                        .then((data) => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Éxito',
+                                text: data.message,
+                            });
+                            saveButton.innerText = 'Editar Personalización'; // Cambiar texto del botón después del guardado
+                        })
+                        .catch((error) => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: error.message,
+                            });
+                        });
+                });
+            }
+    
+            // --- Inicializar botones de pasos ---
+            stepButtons.forEach((button) => {
+                button.addEventListener('click', function () {
+                    const step = this.getAttribute('data-step'); // Obtener el paso seleccionado
+    
+                    // Cambiar vista dinámica
+                    loadDynamicView(step);
+    
+                    // Cargar datos de la tabla
+                    loadCargas(step);
+    
+                    // Actualizar visualización de botones
+                    stepButtons.forEach((btn) => {
                         btn.classList.remove('btn-primary');
                         btn.classList.add('btn-secondary');
                     });
-                    this.classList.add('btn-primary');
+                    this.classList.add('btn-primary'); // Marcar el botón seleccionado
                 });
             });
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const stepButtons = document.querySelectorAll('.step-btn');
-            const stepPanels = document.querySelectorAll('.step-panel');
-
-            // Alternar visibilidad de los pasos
-            stepButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const step = this.getAttribute('data-step');
-
-                    // Actualizar botones
-                    stepButtons.forEach(btn => {
-                        btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-secondary');
-                    });
-                    this.classList.add('btn-primary');
-
-                    // Mostrar el panel correspondiente
-                    stepPanels.forEach(panel => {
-                        panel.style.display = panel.id === `step-${step}` ? 'block' :
-                            'none';
-                    });
-                });
-            });
-
-            // Validar archivos seleccionados
-            document.querySelectorAll('input[type="file"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    const allowedExtensions = ['xlsx', 'xls', 'csv'];
+    
+            // --- Validación de archivos ---
+            document.querySelectorAll('input[type="file"]').forEach((input) => {
+                input.addEventListener('change', function () {
+                    const allowedExtensions = ['xlsx', 'xls', 'csv']; // Extensiones permitidas
                     let isValid = true;
-
-                    Array.from(this.files).forEach(file => {
+    
+                    // Validar cada archivo seleccionado
+                    Array.from(this.files).forEach((file) => {
                         const extension = file.name.split('.').pop().toLowerCase();
                         if (!allowedExtensions.includes(extension)) {
                             isValid = false;
@@ -185,12 +292,17 @@
                             });
                         }
                     });
-
+    
                     if (!isValid) {
                         this.value = ''; // Limpiar el input si hay errores
                     }
                 });
             });
+    
+            // --- Carga inicial ---
+            loadDynamicView('1'); // Cargar vista inicial
+            loadCargas(1); // Cargar datos de tabla inicial
         });
     </script>
+    
 @endsection

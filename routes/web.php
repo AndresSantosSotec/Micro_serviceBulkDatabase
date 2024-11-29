@@ -3,7 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\View;
-
+use App\Http\Controllers\CargasController;
+use App\Http\Controllers\PersonalizationController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -44,3 +45,8 @@ Route::get('/loadPersonalization/{component}', function ($component) {
     // Retornar la vista correspondiente
     return view("components.Personalizacion.{$component}");
 });
+
+Route::get('/cargas/{step}', [CargasController::class, 'getCargasByStep']);
+
+Route::get('/personalization/{tipo}', [PersonalizationController::class, 'getPersonalization']);
+Route::post('/personalization/{tipo}', [PersonalizationController::class, 'savePersonalization']);
